@@ -1,0 +1,53 @@
+--- Introduction ---
+Retirement is contrary to classic FP&A, which focuses on accumulation of funds and the growth of a portfolio. Rather than accumulation,
+retirement is focused on decumulation. The main problem with decumulation is Sequence of Returns Risk (SORR) Sequence of return risk 
+refers to the risk of receiving poor investment returns early in retirement when withdrawals are being made from a portfolio. If you 
+experience a market crash early in your retirement, you are forced to sell off a larger percentage of your portfolio to generate your 
+required cash. Those sold shares can never benefit from the eventual market recovery. Therefore, two portfolios with the exact same 
+average return over 30 years can have drastically different outcomes depending on the order in which those returns occurred.
+
+To attempt to model this, we are unable to use deterministic "average return" methods, as they do not attempt to account for the numerous
+possible ways that losses can be incurred in the future. The market has nearly endless possible paths to profit as well as financial ruin
+and they cannot be simplified out when considering retirement calculations exactly because of SORR, and its unpredictable nature. We must
+use a discrete-time stochastic process. For each time step $t$ (representing one year), the portfolio value $V_t$ is a function of the 
+previous year's value $V_{t-1}$, a random market return $R_{t}$, and the required withdrawal amount $W_{t}$. This is given by the
+function:
+
+$$V_{t} = (V_{t-1} \times (1 + R_t)) - W_t$$
+
+Consider the equation as such: Take an initial amount, the stock market will either grow or shrink it, then take out living expenses. The
+remaining balance is the balance going into the next FY. The issues in calculations arise due to the volatility of the market as well as 
+life in general (living expenses may spike due to unforeseen circumstances, macro events majorly impact the market, etc.) Because the 
+market is unpredictable, $R_t$ is a random variable. We assume logarithmic returns are normally distributed. Therefore, we sample $R_t$ 
+from a Gaussian distribution:
+
+$$R_t \sim \mathcal{N}(\mu, \sigma^2)$$
+
+(Where $\mu$ is the expected market return and $\sigma$ is the market volatility. This notation denotes a normal distribution with mean
+mu and variance of sigma squared.)
+
+Because $R_t$ is randomly distributed, there is no way to calculate the final portfolio value in a definite way. SORR dictates that the 
+order of the random numbers and outcomes are supremely important, even more so than the numbers themselves. We must plan for as many paths
+as we can, and try to consider an average outcome to plan out future steps to avoid financial ruin in the portfolio. In order to do so,
+we use a Monte Carlo simulation. Monte Carlo relies on the Law of Large Numbers and empirical probability. By simulating thousands of 
+possible paths using our stochastic equation, we generate a massive dataset of potential outcomes. We can then calculate the empirical 
+probability of ruin (e.g., if 1,500 out of 10,000 paths fall below $0, the probability of ruin is 15%).
+
+--- Single Path Calculation ---
+- calc_single_path
+takes an initial portfolio value, an annual withdrawal amount, an inflation rate (approx), a mean and std for market returns, and a numbers
+of years to simulate over. the mean and std of market returns can be found online, but it is calculated based on historical data, so any
+catastrophic events may not be well simulated here, but for the sake of the simulation, we will assume there will be no imminent apocalypse
+port_history: initialize list for the annual value of the portfolio, starting with 0
+curr_val: starts at the initial portfolio value, then based on the V_t equation from above, calculates the new portfolio value based on the
+market return (multiplied first) then the subtraction from withdrawals. ** market operations compound THEN withdrawals are made (order)
+curr_withdraw: annual portfolio withdrawal, set to a constant for this
+for each year in the given range, the market return is first calcualted using np.random.normal, which draws random samples from a Gaussian
+distribution. It takes a loc (“centre” of the distribution), and a scale ("spread" of the distribution) as arguments. these are given by the
+input to the overarching function. this means for each iteration, there will be a random market return, somewhat simulating the randomness of 
+the real market, but of course this is simplified as well. 
+after the change in portfolio current value occurs, then the loop checks if the value frops below 0. this sets the portfolio to 0, "flatlining"
+then the new portfolio value is logged in the port_hist list, and then the withdrawal for the next year is set by the current withdrawal, which
+is adjusted by the inflation rate given as an input. This does present another assumption that the inflation rate will hold steady for the 
+observed years of the portfolio.
+finally, the list of historical portfolio values is returned.
