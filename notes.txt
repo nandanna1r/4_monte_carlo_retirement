@@ -51,3 +51,72 @@ then the new portfolio value is logged in the port_hist list, and then the withd
 is adjusted by the inflation rate given as an input. This does present another assumption that the inflation rate will hold steady for the 
 observed years of the portfolio.
 finally, the list of historical portfolio values is returned.
+
+--- Monte Carlo --- 
+One simplified path is not enough in order to make a claim or predict how a portfolio will perform due to the complexity of SORR. In order to 
+remedy this, we use a Monte Carlo simulation, where we simulate 10000 paths for 30 years, to find the likely states of a portfolio after market
+changes. (Probabilistic outcomes are uncertain, potential results of actions or events, defined by their likelihood rather than certainty.)
+Essentially, we build a probability density function for the unknown futures, such that we may try to find a most likely range of outcomes. 
+
+In simple Monte Carlo simulations, a for loop may do the job, but for this, due to the sheer volume of calculations, I call upon Numpy for 
+vectorized operations. We also use the time library to see time taken for execution (just out of curiosity)
+
+- run_monte_carlo
+we essentialy perform the same calculations in the single path calculation, but in bulk by defining the operations that must be perfomed on a 
+table of 10000 x 30 (matrix) of simulations over years. 
+np.zeros: set up blank table, with n+1 rows to hold Year 0, num_sims columns for each individual simulation. 
+ret_matrix: preset the distributed means and sds of the markets for each year of each simulation, preventing 300k calculations, one per loop
+new_vals:prev_vals and mkt_rets_this_yr are np arrays of 10,000 numbers, basic math operators (*, +, -) automatically apply to every single 
+item in the array simultaneously.
+np.maximum: vectorized equivalent of our if curr_val < 0, compares 2 arrays: 1 of the portfolio values, one of all 0s, and replaces the lower.
+
+--- Visualization ---
+Now that we have a functional Monte Carlo engine, I want to actually see how the values change rather than have the black box of the function,
+and only see the sample outputs that are called in the terminal by the test. the two implemented charts that would provide some relevant insight
+into portfolio performance are a spaghetti plot of a set of paths, and a histogram of final value performance. we do fig with ax1 and ax2 using 
+subplot. 
+
+- spaghetti plot: a data visualization tool displaying numerous individual lines together on one graph. this is useful for seeing the trajectories
+of the displayed portfolios, to get a better idea of the average performance of the portfolio, as well as the behavior of outliers. if a large 
+spread of lines is seen by the 30th year of simulation, then this supports the SORR theory that there is unpredictable market risk in portfolio 
+growth and withdrawals. 
+ax1 plot slices the portfolio matrix to include the first 500 simulated portfolios to be visualized. the alpha is set to 0.05 (opacity of lines)
+in order to see the trend better with such a large collection of lines. there is an anonymous (lambda) function that cleans up the values into 
+readable strings for the user on the axis.  
+
+- histogram : The histogram shows a distribution of final performances of the portfolio. this can allow us to approximate the performance of 
+portfolios to a known or analogous distribution, giving insight into the behavior of risk.
+this plot takes all the data, but seperates it into 50 bins, using the same lambda function in order to format the text on axis.
+there is a line drawn at $0 in order to denote portfolios that have failed or run dry by the end of the time frame.
+
+--- Risk Metrics --- 
+Analysis via Pandas. Now that we have simulated the portfolio, we can run analysis on any one of the paths.
+- calc_risk_metrics:
+we can call a specific year to target in this function. target_yr_values is the specific row for the index called.
+df_vals will be the conversion of a NumPy array into a Pandas Series for data analysis. given this, we can calculate the probability of ruin.
+we take the number of ruined portfolios (the portfolios wehere the series has the target value of 0), and sums them together (count)
+then the total number of sims is simply calculated by taking the length of the number of indexes in the portfolio matrix
+finally, the probability is calculated by x/n, and then multiplied by 100 to give a percentage.
+then pd.quantiles are created. verages (means) are incredibly dangerous in finance because extreme outliers warp them. If 9,999 people go broke 
+and 1 person makes a trillion dollars, the average outcome looks great. Quantiles sort the 10,000 paths from worst to best. The 5th quantile 
+(0.05) looks at the exact portfolio sitting at position 500. Translated: 95% of the time, you will have more money than this.
+best outcome is printed as well, just so you can see the lucky winner of the simulation :0
+
+
+
+--- Conclusion ---
+-learning more numpy
+-- np.float64 and weird string stuff in the test case for run_monte_carlo
+-learning about stochastic processes
+-probabilistic outcomes
+-vectorized operations
+-matplot formatting nonsense :( funcFormatter
+- i hate formatting 116, 126, 127
+-lambda(anonymous) functions
+-SORR
+- how this is useful at all ***
+- pd.quantile
+- rich module
+- hella error handling
+- i hate string formatting RRRAAAAAAAAAAHHHHHHHHH
+
